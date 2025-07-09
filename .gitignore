@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
+
+# 가상환경
+.venv/
+
+# macOS
+.DS_Store
+
+# ChromaDB 및 임시/캐시 데이터
+chroma_db/
+persisted_data/
+*.sqlite3
+
+# 기타
+.deployment

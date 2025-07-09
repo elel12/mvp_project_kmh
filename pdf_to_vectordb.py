@@ -16,7 +16,9 @@ AZURE_OPENAI_API_KEY = os.getenv("TEXT_EMBEDDING_AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("TEXT_EMBEDDING_AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_API_VERSION = os.getenv("TEXT_EMBEDDING_AZURE_OPENAI_API_VERSION")
 DEPLOYMENT_NAME = os.getenv("TEXT_EMBEDDING_DEPLOYMENT_NAME")
-PERSIST_DIR = os.getenv("PERSIST_DIR")
+
+# Chroma DB 저장 경로
+PERSIST_DIR = os.getenv("PERSIST_DIR", "./chroma_db")
 
 # PDF에서 텍스트 추출 함수
 def extract_text_from_pdf(pdf_path):
@@ -53,7 +55,9 @@ def get_azure_embeddings(text_list):
 # Chroma DB에 저장 함수
 from chromadb import PersistentClient
 
-def save_to_chroma(text_chunks, embeddings, persist_dir=PERSIST_DIR, pdf_path=None):
+def save_to_chroma(text_chunks, embeddings, persist_dir=None, pdf_path=None):
+    if persist_dir is None:
+        persist_dir = PERSIST_DIR
     client = PersistentClient(path=persist_dir)
     collection = client.get_or_create_collection("pdf_collection")
     # 파일명과 타임스탬프를 prefix로 사용
@@ -94,7 +98,7 @@ def show_chroma_db_status(persist_dir="./chroma_db", recent_n=5):
     return count, ids[-recent_n:][::-1], documents[-recent_n:][::-1]
 
 if __name__ == "__main__":
-    pdf_path = "/Users/minho/Desktop/MS AI/Azure 기반 생성형 AI MVP프로젝트 제안서_강민호.pdf"  # 사용할 PDF 파일 경로
+    pdf_path = "/Users/minho/Desktop/MS AI/pstn_voc.pdf"  # 사용할 PDF 파일 경로
     text = extract_text_from_pdf(pdf_path)
     chunks = split_text(text)
     embeddings = get_azure_embeddings(chunks)
