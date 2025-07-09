@@ -52,15 +52,11 @@ def get_azure_embeddings(text_list):
         embeddings.append(response.data[0].embedding)
     return embeddings
 
-# Chroma DB에 저장 함수 (저장 경로 고정: ./chroma_db)
+# Chroma DB에 저장 함수
 from chromadb import PersistentClient
 
 def save_to_chroma(text_chunks, embeddings, pdf_path=None):
-    """
-    ChromaDB에 텍스트 청크와 임베딩을 저장합니다.
-    저장 경로는 ./chroma_db로 고정됩니다.
-    """
-    persist_dir = "./chroma_db"  # 고정된 저장 경로
+    persist_dir = "./chroma_db"
     client = PersistentClient(path=persist_dir)
     collection = client.get_or_create_collection("pdf_collection")
     # 파일명과 타임스탬프를 prefix로 사용
@@ -87,7 +83,7 @@ def save_to_chroma(text_chunks, embeddings, pdf_path=None):
         print("[경고] 저장 폴더가 존재하지 않습니다.")
 
 def show_chroma_db_status(recent_n=5):
-    """ChromaDB에 누적된 전체 청크/문서 개수와 최근 N개 ID, 내용을 최신순으로 출력"""
+    # ChromaDB에 누적된 전체 청크/문서 개수와 최근 N개 ID, 내용을 최신순으로 출력
     persist_dir = "./chroma_db"  # 고정된 저장 경로
     client = PersistentClient(path=persist_dir)
     collection = client.get_or_create_collection("pdf_collection")

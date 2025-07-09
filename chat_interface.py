@@ -1,6 +1,7 @@
 import streamlit as st
-from chat_core import get_openai_client, get_query_embedding, search_chroma
+from chat_core import get_openai_client, search_all_content
 from pdf_to_vectordb import extract_text_from_pdf, split_text, get_azure_embeddings, save_to_chroma
+from conversation_embedder import save_conversation_to_chroma, get_conversation_stats
 
 def main():
     # Streamlit UI 설정
@@ -152,6 +153,10 @@ def main():
             if st.button('초기화', key='reset_chat_col1', use_container_width=True):
                 st.session_state['messages'] = []
                 st.session_state['pdf_applied'] = False
+                # 대화 통계 표시
+                stats = get_conversation_stats()
+                if stats["total"] > 0:
+                    st.info(f"💾 저장된 대화: {stats['total']}개 (사용자: {stats['user_messages']}, AI: {stats['assistant_messages']})")
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         # 파일첨부 영역
@@ -205,15 +210,15 @@ def main():
         user_input = st.chat_input("메시지를 입력하세요:")
         if user_input:
             st.session_state.messages = [m for m in st.session_state.messages if m["role"] != "system"]
-            # ChromaDB에서 유사 문단 검색
-            similar_chunks = search_chroma(user_input)
-            if similar_chunks:
-                context_text = "\n\n".join(similar_chunks)
-                system_prompt = context_text
-                st.session_state.messages.append({"role": "system", "content": system_prompt})
-                st.session_state.messages.append({"role": "user", "content": user_input})
-            else:
-                st.session_state.messages.append({"role": "user", "content": user_input})
+            
+            # 통합 검색 (PDF + 대화 기록)
+            search_result = search_all_content(user_input, pdf_top_k=3, conversation_top_k=2)
+            
+            # 컨텍스트가 있으면 시스템 프롬프트로 추가
+            if search_result['context_text']:
+                st.session_state.messages.append({"role": "system", "content": search_result['context_text']})
+            
+            st.session_state.messages.append({"role": "user", "content": user_input})
             st.rerun()
 
         # 답변 생성
@@ -221,6 +226,15 @@ def main():
             with st.spinner("응답 생성 중..."):
                 response = get_openai_client(st.session_state.messages)
             st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            # 대화 내용을 ChromaDB에 저장 (최근 사용자 메시지와 AI 답변)
+            try:
+                user_message = st.session_state.messages[-2]["content"]  # 사용자 메시지
+                assistant_message = response  # AI 답변
+                save_conversation_to_chroma(user_message, assistant_message)
+            except Exception as e:
+                print(f"대화 저장 중 오류: {e}")
+            
             st.rerun()
 
 if __name__ == "__main__":
