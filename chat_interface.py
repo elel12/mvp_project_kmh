@@ -180,6 +180,7 @@ def main():
                             text = extract_text_from_pdf(temp_path)
                             chunks = split_text(text)
                             embeddings = get_azure_embeddings(chunks)
+                            # ChromaDB에 저장 (경로 고정: ./chroma_db)
                             save_to_chroma(chunks, embeddings, pdf_path=temp_path)
                             st.session_state['pdf_applied'] = True
                             st.success("PDF가 벡터 DB(ChromaDB)에 성공적으로 적용되었습니다!")

@@ -21,7 +21,8 @@ AZURE_EMBEDDING_ENDPOINT = os.getenv("TEXT_EMBEDDING_AZURE_OPENAI_ENDPOINT")
 AZURE_EMBEDDING_API_VERSION = os.getenv("TEXT_EMBEDDING_AZURE_OPENAI_API_VERSION")
 EMBEDDING_DEPLOYMENT_NAME = os.getenv("TEXT_EMBEDDING_DEPLOYMENT_NAME")
 
-PERSIST_DIR = os.getenv("PERSIST_DIR")
+# ChromaDB 저장 경로 (고정)
+PERSIST_DIR = "./chroma_db"
 
 # OpenAI 챗 함수
 def get_openai_client(messages):
@@ -48,8 +49,13 @@ def get_query_embedding(query):
     )
     return response.data[0].embedding
 
-# ChromaDB 검색 함수
-def search_chroma(query, top_k=3, persist_dir=PERSIST_DIR):
+# ChromaDB 검색 함수 (저장 경로 고정: ./chroma_db)
+def search_chroma(query, top_k=3):
+    """
+    ChromaDB에서 유사한 문서를 검색합니다.
+    저장 경로는 ./chroma_db로 고정됩니다.
+    """
+    persist_dir = "./chroma_db"  # 고정된 저장 경로
     client = PersistentClient(path=persist_dir)
     collection = client.get_or_create_collection("pdf_collection")
     query_emb = get_query_embedding(query)
