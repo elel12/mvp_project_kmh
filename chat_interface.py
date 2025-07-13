@@ -153,10 +153,10 @@ def main():
             if st.button('초기화', key='reset_chat_col1', use_container_width=True):
                 st.session_state['messages'] = []
                 st.session_state['pdf_applied'] = False
-                # 대화 통계 표시
+                # 통합 컬렉션 통계 표시
                 stats = get_conversation_stats()
                 if stats["total"] > 0:
-                    st.info(f"💾 저장된 대화: {stats['total']}개 (사용자: {stats['user_messages']}, AI: {stats['assistant_messages']})")
+                    st.info(f"💾 총 저장 데이터: {stats['total']}개\n📄 PDF: {stats['pdf_chunks']}개, 💬 대화: {stats['conversation_total']}개")
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         # 파일첨부 영역
@@ -211,8 +211,8 @@ def main():
         if user_input:
             st.session_state.messages = [m for m in st.session_state.messages if m["role"] != "system"]
             
-            # 통합 검색 (PDF + 대화 기록)
-            search_result = search_all_content(user_input, pdf_top_k=3, conversation_top_k=2)
+            # 통합 검색 (PDF + 대화 기록) - 대화 기록 검색 범위 확대
+            search_result = search_all_content(user_input, pdf_top_k=8, conversation_top_k=5)
             
             # 컨텍스트가 있으면 시스템 프롬프트로 추가
             if search_result['context_text']:
