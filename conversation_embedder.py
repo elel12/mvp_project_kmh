@@ -1,5 +1,6 @@
 import os
 import time
+import uuid  # ID 충돌 방지를 위한 UUID 사용
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 from chromadb import PersistentClient
@@ -72,38 +73,82 @@ def save_conversation_to_chroma(user_message, assistant_message):
         # 타임스탬프 생성
         ts = int(time.time())
         
+        # 더 안전한 ID 생성 (UUID 사용하여 충돌 방지)
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]  # UUID의 첫 8자리 사용
+        
         # 사용자 메시지 저장
         user_embedding = get_conversation_embedding(user_message)
-        user_id = f"conversation_user_{ts}_{hash(user_message) % 10000}"
+        user_id = f"conversation_user_{ts}_{unique_suffix}"
         
-        collection.add(
-            documents=[user_message],
-            embeddings=[user_embedding],
-            ids=[user_id],
-            metadatas=[{
-                "type": "conversation",
-                "role": "user",
-                "timestamp": ts,
-                "source": "chat_history"
-            }]
-        )
+        # 사용자 메시지 저장 (ID 충돌 방지)
+        try:
+            collection.add(
+                documents=[user_message],
+                embeddings=[user_embedding],
+                ids=[user_id],
+                metadatas=[{
+                    "type": "conversation",
+                    "role": "user",
+                    "timestamp": ts,
+                    "source": "chat_history"
+                }]
+            )
+        except Exception as e:
+            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                # ID 충돌 시 새로운 UUID로 재시도
+                user_id = f"conversation_user_{ts}_{str(uuid.uuid4())[:12]}"
+                collection.add(
+                    documents=[user_message],
+                    embeddings=[user_embedding],
+                    ids=[user_id],
+                    metadatas=[{
+                        "type": "conversation",
+                        "role": "user",
+                        "timestamp": ts,
+                        "source": "chat_history"
+                    }]
+                )
+            else:
+                raise e
         
-        # AI 답변 저장
+        # AI 답변 저장 (다른 UUID 사용)
         assistant_embedding = get_conversation_embedding(assistant_message)
-        assistant_id = f"conversation_assistant_{ts}_{hash(assistant_message) % 10000}"
+        assistant_unique_suffix = str(uuid.uuid4())[:8]  # 별도 UUID 사용
+        assistant_id = f"conversation_assistant_{ts}_{assistant_unique_suffix}"
         
-        collection.add(
-            documents=[assistant_message],
-            embeddings=[assistant_embedding],
-            ids=[assistant_id],
-            metadatas=[{
-                "type": "conversation",
-                "role": "assistant",
-                "timestamp": ts,
-                "source": "chat_history",
-                "related_user_id": user_id
-            }]
-        )
+        # AI 답변 저장 (ID 충돌 방지)
+        try:
+            collection.add(
+                documents=[assistant_message],
+                embeddings=[assistant_embedding],
+                ids=[assistant_id],
+                metadatas=[{
+                    "type": "conversation",
+                    "role": "assistant",
+                    "timestamp": ts,
+                    "source": "chat_history",
+                    "related_user_id": user_id
+                }]
+            )
+        except Exception as e:
+            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                # ID 충돌 시 새로운 UUID로 재시도
+                assistant_id = f"conversation_assistant_{ts}_{str(uuid.uuid4())[:12]}"
+                collection.add(
+                    documents=[assistant_message],
+                    embeddings=[assistant_embedding],
+                    ids=[assistant_id],
+                    metadatas=[{
+                        "type": "conversation",
+                        "role": "assistant",
+                        "timestamp": ts,
+                        "source": "chat_history",
+                        "related_user_id": user_id
+                    }]
+                )
+            else:
+                raise e
         
         print(f"대화 내용 저장 완료! (사용자: {user_id}, AI: {assistant_id})")
         
