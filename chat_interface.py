@@ -1,5 +1,5 @@
 import streamlit as st
-from chat_core import get_openai_client, search_all_content, get_agent_system_prompt, save_to_faiss
+from chat_core import get_openai_client, search_all_content, get_agent_system_prompt
 from pdf_to_vectordb import extract_text_from_pdf, split_text, get_azure_embeddings, save_to_chroma
 
 def main():
@@ -164,8 +164,7 @@ def main():
     
     # 에이전트별 초기 메시지
     agent_messages = {
-        'voc_agent': {"role": "assistant", "content": "안녕하세요! K-ICIS 오더 VOC 전문 상담 챗봇입니다. <br>고객 문의사항에 대해 도움을 드리겠습니다."},
-        'knowledge_agent': {"role": "assistant", "content": "안녕하세요! K-ICIS 지식자산화 에이전트입니다. <br>문서 분석 및 지식 정리를 도와드리겠습니다."}
+        'voc_agent': {"role": "assistant", "content": "안녕하세요! K-ICIS 오더 VOC 전문 상담 챗봇입니다. <br>고객 문의사항에 대해 도움을 드리겠습니다."}
     }
     
     # 메시지가 비어있으면 선택된 에이전트의 초기 메시지 추가
@@ -183,8 +182,7 @@ def main():
             
             # 에이전트 선택
             agent_options = {
-                'voc_agent': '🎧 VOC 상담 챗봇',
-                'knowledge_agent': '📚 지식자산화 에이전트'
+                'voc_agent': '🎧 VOC 상담 챗봇'
             }
             
             selected_agent = st.radio(
@@ -211,12 +209,8 @@ def main():
             st.markdown('</div>', unsafe_allow_html=True)
         # 파일첨부 영역
         with st.container():
-            # 선택된 에이전트에 따른 파일 업로드 안내 메시지
-            current_agent = st.session_state.get('selected_agent', 'voc_agent')
-            if current_agent == 'voc_agent':
-                upload_guide = "VOC 관련 문서나 매뉴얼을 업로드하세요."
-            else:  # knowledge_agent
-                upload_guide = "분석할 문서나 자료를 업로드하세요."
+            # VOC 관련 파일 업로드 안내 메시지
+            upload_guide = "VOC 관련 문서나 매뉴얼을 업로드하세요."
             
             st.markdown(f'''        
             <div class="pdf-upload-area">
@@ -243,16 +237,9 @@ def main():
                             chunks = split_text(text)
                             embeddings = get_azure_embeddings(chunks)
                             
-                            # 에이전트별 벡터 DB 저장
-                            current_agent = st.session_state.get('selected_agent', 'voc_agent')
-                            if current_agent == 'voc_agent':
-                                # VOC 에이전트: ChromaDB 사용
-                                success, message = save_to_chroma(chunks, embeddings, pdf_path=temp_path)
-                                db_name = "ChromaDB"
-                            else:  # knowledge_agent
-                                # 지식자산화 에이전트: FAISS DB 사용
-                                success, message = save_to_faiss(chunks, embeddings, pdf_path=temp_path)
-                                db_name = "FAISS DB"
+                            # VOC 에이전트: ChromaDB 사용
+                            success, message = save_to_chroma(chunks, embeddings, pdf_path=temp_path)
+                            db_name = "ChromaDB"
                             
                             if success:
                                 st.session_state['pdf_applied'] = True
@@ -263,9 +250,7 @@ def main():
                         except Exception as e:
                             st.error(f"PDF 벡터화 중 오류 발생: {e}")
                 elif st.session_state['pdf_applied']:
-                    current_agent = st.session_state.get('selected_agent', 'voc_agent')
-                    db_name = "ChromaDB" if current_agent == 'voc_agent' else "FAISS DB"
-                    st.success(f"✅ PDF가 {db_name}에 성공적으로 적용되었습니다!")
+                    st.success(f"✅ PDF가 ChromaDB에 성공적으로 적용되었습니다!")
 
     with col2:
         # 채팅 메시지 영역 (고정 높이, 스크롤, 가로폭 900px)
@@ -283,8 +268,7 @@ def main():
         # 에이전트 상태 표시
         current_agent = st.session_state.get('selected_agent', 'voc_agent')
         agent_info = {
-            'voc_agent': {'name': '🎧 VOC 상담 챗봇', 'color': '#1976d2', 'bg': '#e3f0ff'},
-            'knowledge_agent': {'name': '📚 지식자산화 에이전트', 'color': '#7b1fa2', 'bg': '#f3e5f5'}
+            'voc_agent': {'name': '🎧 VOC 상담 챗봇', 'color': '#1976d2', 'bg': '#e3f0ff'}
         }
         
         current_info = agent_info[current_agent]
@@ -302,7 +286,7 @@ def main():
             # 선택된 에이전트 정보 가져오기
             current_agent = st.session_state.get('selected_agent', 'voc_agent')
             
-            # 통합 검색 (PDF만) - 에이전트별 맞춤 검색
+            # VOC 에이전트 전용 검색 (ChromaDB 사용)
             search_result = search_all_content(user_input, pdf_top_k=8, agent_type=current_agent)
             
             # 에이전트별 시스템 프롬프트 생성
